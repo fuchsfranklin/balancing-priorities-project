@@ -271,5 +271,5 @@ balancing-priorities-project/
 
 ---
 
-*Technical Appendix generated on 2025-07-25 13:57:38*
+*Technical Appendix generated on 2025-07-25 19:09:56*
 *Analysis pipeline validation: 100.0% overall success rate*
