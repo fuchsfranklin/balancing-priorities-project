@@ -141,5 +141,5 @@ All code, data, and analysis notebooks are available for full reproducibility. E
 
 ---
 
-*Report generated on 2025-07-25 13:56:00*
+*Report generated on 2025-07-25 16:26:23*
 *Project validation: 100.0% overall success rate*

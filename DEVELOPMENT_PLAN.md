@@ -109,7 +109,7 @@ balancing-priorities-project/
     └── user_guide.md               # User guide for running analysis
 ```
 
-## Phase 1: Project Setup and Infrastructure (Week 1)
+## Phase 1: Project Setup and Infrastructure
 
 ### 1.1 Environment Setup
 - [ ] Create Python virtual environment
@@ -132,7 +132,7 @@ balancing-priorities-project/
 - [ ] Design Backtester interface
 - [ ] Create basic data models for assets, returns, costs
 
-## Phase 2: Data Collection and Processing (Week 2)
+## Phase 2: Data Collection and Processing
 
 ### 2.1 Data Collectors Implementation
 - [ ] **Yahoo Finance Collector** (`data/collectors/yahoo_finance.py`)
@@ -170,7 +170,7 @@ balancing-priorities-project/
 - [ ] Examine factor premiums (size, value)
 - [ ] Document data quality and coverage
 
-## Phase 3: Core Portfolio Engine (Week 3)
+## Phase 3: Core Portfolio Engine 
 
 ### 3.1 Portfolio Class Implementation
 - [ ] **Portfolio Class** (`src/portfolio/portfolio.py`)
@@ -205,7 +205,7 @@ balancing-priorities-project/
 - [ ] Validate cost and tax calculations
 - [ ] Compare against known benchmarks
 
-## Phase 4: Multi-Objective Optimization Engine (Week 4-5)
+## Phase 4: Multi-Objective Optimization Engine
 
 ### 4.1 Objective Functions
 - [ ] **Return Maximization** (`src/optimization/objectives.py`)
@@ -246,30 +246,9 @@ balancing-priorities-project/
 - [ ] Parameter sensitivity analysis
 - [ ] Convergence analysis
 
-## Phase 5: Advanced Methods (Week 6 - Optional)
+## Phase 5: Backtesting and Simulation 
 
-### 5.1 Multi-Objective Reinforcement Learning (MORL)
-- [ ] **RL Environment** (`src/optimization/morl/environment.py`)
-  - State space: market conditions, portfolio weights, time
-  - Action space: allocation adjustments
-  - Reward function: multi-objective vector
-  - Market regime simulation
-
-- [ ] **MORL Agents** (`src/optimization/morl/agents.py`)
-  - Deep Q-Network for multi-objective setting
-  - Policy gradient methods
-  - Scalarization techniques
-  - Pareto-optimal policy discovery
-
-- [ ] **MORL Analysis** (`04_morl_experiments.ipynb`)
-  - Compare MORL vs static optimization
-  - Analyze adaptive behavior
-  - Regime-dependent strategies
-  - Policy interpretability
-
-## Phase 6: Backtesting and Simulation (Week 7)
-
-### 6.1 Backtesting Engine
+### 5.1 Backtesting Engine
 - [ ] **Backtest Framework** (`src/simulation/backtest.py`)
   - Historical simulation with rebalancing
   - Transaction cost integration
@@ -283,7 +262,7 @@ balancing-priorities-project/
   - Costs: total expense ratio, tax drag, turnover
   - Combined metrics: risk-adjusted after-tax returns
 
-### 6.2 Validation Framework
+### 5.2 Validation Framework
 - [ ] **Out-of-Sample Testing** (`src/simulation/validation.py`)
   - Train/test split for optimization
   - Walk-forward analysis
@@ -296,16 +275,16 @@ balancing-priorities-project/
   - Stress testing
   - Confidence intervals for metrics
 
-### 6.3 Comprehensive Backtesting
+### 5.3 Comprehensive Backtesting
 - [ ] Create `05_backtesting.ipynb`
 - [ ] Full historical analysis (1990-2024)
 - [ ] Multiple optimization periods
 - [ ] Comparison with benchmark portfolios
 - [ ] Sensitivity to parameters
 
-## Phase 7: Analysis and Visualization (Week 8)
+## Phase 6: Analysis and Visualization
 
-### 7.1 Pareto Frontier Analysis
+### 6.1 Pareto Frontier Analysis
 - [ ] **Pareto Analysis Tools** (`src/analysis/pareto_analysis.py`)
   - Pareto frontier visualization
   - Portfolio comparison tools
@@ -318,7 +297,7 @@ balancing-priorities-project/
   - Time period sensitivity
   - Assumption sensitivity
 
-### 7.2 Visualization Suite
+### 6.2 Visualization Suite
 - [ ] **Visualization Tools** (`src/analysis/visualization.py`)
   - 3D Pareto frontier plots
   - Efficient frontier curves
@@ -326,56 +305,56 @@ balancing-priorities-project/
   - Performance comparison charts
   - Risk-return scatter plots
 
-### 7.3 Portfolio Comparison
+### 6.3 Portfolio Comparison
 - [ ] **Comparison Framework** (`src/analysis/comparison.py`)
   - Benchmark portfolio definitions
   - Performance attribution
   - Statistical significance testing
   - Practical significance assessment
 
-### 7.4 Final Analysis
+### 6.4 Final Analysis
 - [ ] Create `06_pareto_analysis.ipynb`
 - [ ] Generate all key visualizations in `07_visualizations.ipynb`
 - [ ] Comprehensive portfolio comparison
 - [ ] Statistical validation of results
 
-## Phase 8: Report Generation and Documentation (Week 9)
+## Phase 7: Report Generation and Documentation
 
-### 8.1 Automated Report Generation
+### 7.1 Automated Report Generation
 - [ ] **Report Generator** (`scripts/generate_report.py`)
   - Automated figure generation
   - Table compilation
   - Statistical summary generation
   - LaTeX/Markdown report compilation
 
-### 8.2 Final Report
+### 7.2 Final Report
 - [ ] Create `08_report_generation.ipynb`
 - [ ] Generate `reports/final_report.md`
 - [ ] Create `reports/technical_appendix.md`
 - [ ] Generate executive summary
 
-### 8.3 Documentation
+### 7.3 Documentation
 - [ ] Complete API documentation
 - [ ] User guide for running analysis
 - [ ] Methodology documentation
 - [ ] Code comments and docstrings
 
-## Phase 9: Testing and Validation (Week 10)
+## Phase 8: Testing and Validation
 
-### 9.1 Unit Testing
+### 8.1 Unit Testing
 - [ ] Test data collection modules
 - [ ] Test portfolio calculations
 - [ ] Test optimization algorithms
 - [ ] Test backtesting engine
 - [ ] Test visualization functions
 
-### 9.2 Integration Testing
+### 8.2 Integration Testing
 - [ ] End-to-end pipeline testing
 - [ ] Cross-validation of results
 - [ ] Performance benchmarking
 - [ ] Memory and runtime optimization
 
-### 9.3 Reproducibility
+### 8.3 Reproducibility
 - [ ] Ensure deterministic results
 - [ ] Document random seeds
 - [ ] Version control for data
@@ -387,7 +366,7 @@ balancing-priorities-project/
 1. **Multi-Objective Optimization Engine**: Complete NSGA-II implementation for portfolio optimization
 2. **Comprehensive Backtesting Framework**: Historical simulation with costs and taxes
 3. **Pareto Frontier Analysis**: Trade-off visualization and analysis tools
-4. **MORL Implementation** (optional): Dynamic portfolio allocation using reinforcement learning
+4. **MORL Implementation** (Phase 9 - optional enhancement): Dynamic portfolio allocation using reinforcement learning
 
 ### Research Outputs
 1. **Publication-Grade Report**: Comprehensive analysis validating Bogleheads philosophy
@@ -406,11 +385,11 @@ balancing-priorities-project/
 - **Weeks 1-2**: Setup and data collection
 - **Weeks 3-4**: Core portfolio engine
 - **Weeks 4-5**: Optimization algorithms
-- **Week 6**: Advanced methods (MORL) - optional
 - **Week 7**: Backtesting and simulation
 - **Week 8**: Analysis and visualization
 - **Week 9**: Report generation
-- **Week 10**: Testing and finalization
+- **Week 10**: Testing and validation
+- **Future Enhancement**: Advanced methods (MORL) - optional
 
 ## Risk Mitigation
 
