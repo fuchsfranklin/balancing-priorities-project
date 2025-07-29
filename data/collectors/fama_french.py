@@ -75,11 +75,19 @@ class FamaFrenchCollector:
             
             # Extract CSV from ZIP
             with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:
-                csv_files = [f for f in zip_file.namelist() if f.endswith('.CSV')]
-                if not csv_files:
-                    raise ValueError(f"No CSV file found in {dataset_name}")
+                # Look for various file extensions
+                all_files = zip_file.namelist()
+                logger.info(f"Files in ZIP: {all_files}")
                 
-                csv_content = zip_file.read(csv_files[0]).decode('utf-8')
+                csv_files = [f for f in all_files if f.upper().endswith(('.CSV', '.TXT'))]
+                if not csv_files:
+                    # Try to find any text-like file
+                    csv_files = [f for f in all_files if not f.endswith('/') and '.' in f]
+                    if not csv_files:
+                        raise ValueError(f"No data file found in {dataset_name}. Available files: {all_files}")
+                
+                # Use the first data file found
+                csv_content = zip_file.read(csv_files[0]).decode('utf-8', errors='ignore')
             
             # Parse the CSV content
             data = self._parse_fama_french_csv(csv_content, dataset_name)
@@ -248,66 +256,126 @@ class FamaFrenchCollector:
         """Parse Fama-French CSV format."""
         lines = csv_content.strip().split('\n')
         
-        # Find the data section
-        data_start = 0
+        # Find the header row and data start
+        header_row = None
+        data_start = None
+        
         for i, line in enumerate(lines):
-            if re.match(r'^\d{6}', line.strip()):  # Format: YYYYMM
-                data_start = i
+            line = line.strip()
+            if not line:
+                continue
+                
+            # Skip metadata lines
+            if any(skip in line.upper() for skip in ['COPYRIGHT', 'CREATED USING', 'CRSP', 'IBBOTSON', 'ICE BOFA']):
+                continue
+            
+            # Look for header row with factor names
+            if any(header in line.upper() for header in ['MKT-RF', 'SMB', 'HML', 'RMW', 'CMA', 'MOM', 'RF']):
+                header_row = i
+                data_start = i + 1
+                break
+                
+            # Look for first data row (starts with 6-digit date YYYYMM)
+            elif re.match(r'^\s*\d{6}', line):
+                # Check if previous non-empty line could be header
+                for j in range(i-1, -1, -1):
+                    prev_line = lines[j].strip()
+                    if prev_line and not any(skip in prev_line.upper() for skip in ['COPYRIGHT', 'CREATED', 'CRSP', 'IBBOTSON', 'ICE']):
+                        if any(h in prev_line.upper() for h in ['MKT', 'SMB', 'HML', 'RF']) or ',' in prev_line or '\t' in prev_line:
+                            header_row = j
+                            data_start = i
+                            break
+                        else:
+                            # No clear header found, use default and start data here
+                            data_start = i
+                            break
                 break
         
-        if data_start == 0:
-            # Try alternative date formats
-            for i, line in enumerate(lines):
-                if re.match(r'^\d{4}', line.strip()):  # Format: YYYY
-                    data_start = i
-                    break
-        
-        # Find where data ends (usually indicated by empty line or annual data)
-        data_end = len(lines)
-        for i in range(data_start + 1, len(lines)):
-            line = lines[i].strip()
-            if not line or 'Annual' in line or 'Copyright' in line:
-                data_end = i
-                break
+        if data_start is None:
+            logger.error(f"Could not find data start in {dataset_name}")
+            return pd.DataFrame()
         
         # Extract header
-        if data_start > 0:
-            header_line = lines[data_start - 1]
-            headers = [col.strip() for col in header_line.split(',')]
+        if header_row is not None:
+            header_line = lines[header_row].strip()
+            # Parse header - try different delimiters
+            if ',' in header_line:
+                headers = [h.strip() for h in header_line.split(',') if h.strip()]
+            elif '\t' in header_line:
+                headers = [h.strip() for h in header_line.split('\t') if h.strip()]
+            else:
+                headers = header_line.split()
+                
+            # If first header is empty or looks like data, prepend Date
+            if not headers or headers[0].strip() == '' or headers[0].upper() in ['MKT-RF', 'SMB', 'HML']:
+                headers = ['Date'] + headers
         else:
-            # Guess headers based on dataset
+            # Use default headers based on dataset
             headers = self._get_default_headers(dataset_name)
         
-        # Parse data lines
+        # Parse data rows
         data_rows = []
-        for i in range(data_start, data_end):
-            line = lines[i].strip()
-            if line and re.match(r'^\d{4}', line):
-                row = [col.strip() for col in line.split(',')]
-                if len(row) >= len(headers):
-                    data_rows.append(row[:len(headers)])
+        for line_idx in range(data_start, len(lines)):
+            line = lines[line_idx].strip()
+            if not line:
+                continue
+                
+            # Stop at end markers or annual data
+            if any(marker in line.upper() for marker in ['ANNUAL', 'COPYRIGHT', '---']):
+                break
+            
+            # Skip lines that don't start with a date
+            if not re.match(r'^\s*\d{6}', line):
+                continue
+            
+            # Parse data - try different delimiters
+            if ',' in line:
+                row_data = [item.strip() for item in line.split(',') if item.strip()]
+            elif '\t' in line:
+                row_data = [item.strip() for item in line.split('\t') if item.strip()]
+            else:
+                row_data = line.split()
+            
+            # Ensure we have the right number of columns
+            if len(row_data) >= len(headers):
+                data_rows.append(row_data[:len(headers)])
+            elif len(row_data) == len(headers) - 1:
+                # Missing RF column, add default
+                data_rows.append(row_data + ['0.00'])
         
         if not data_rows:
             logger.warning(f"No data rows found for {dataset_name}")
             return pd.DataFrame()
         
         # Create DataFrame
-        df = pd.DataFrame(data_rows, columns=headers)
+        df = pd.DataFrame(data_rows, columns=headers[:len(data_rows[0]) if data_rows else len(headers)])
         
-        # Parse date column
+        # Parse date column (YYYYMM format) - first column should be date
         date_col = df.columns[0]
-        df[date_col] = pd.to_datetime(df[date_col], format='%Y%m', errors='coerce')
+        
+        # Ensure the first column is treated as Date
+        if date_col.upper() != 'DATE' and any(factor in date_col.upper() for factor in ['MKT', 'SMB', 'HML']):
+            # The header parsing was wrong, use default headers
+            headers = self._get_default_headers(dataset_name)
+            df.columns = headers[:len(df.columns)]
+            date_col = df.columns[0]
+        
+        df[date_col] = pd.to_datetime(df[date_col].astype(str), format='%Y%m', errors='coerce')
         
         # Convert to numeric (except date column)
         for col in df.columns[1:]:
             df[col] = pd.to_numeric(df[col], errors='coerce')
         
+        # Remove rows with invalid dates
+        df = df.dropna(subset=[date_col])
+        
         # Set date as index
         df.set_index(date_col, inplace=True)
         
-        # Convert percentages to decimals
+        # Convert percentages to decimals (Fama-French data is in percentage points)
         df = df / 100.0
         
+        logger.info(f"Successfully parsed {dataset_name}: {df.shape}, date range: {df.index.min()} to {df.index.max()}")
         return df
     
     def _get_default_headers(self, dataset_name: str) -> List[str]:

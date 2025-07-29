@@ -131,23 +131,126 @@ class FundDataCollector:
         Returns:
             Dictionary with comprehensive fund information
         """
-        # Start with Vanguard if it's a Vanguard fund
+        # Known expense ratios for common ETFs (as reliable fallback)
+        known_expense_ratios = {
+            'VTI': 0.03,    # Total Stock Market ETF
+            'VOO': 0.03,    # S&P 500 ETF
+            'VXUS': 0.08,   # Total International Stock ETF
+            'VTIAX': 0.11,  # Total International Stock Index (Admiral)
+            'BND': 0.035,   # Total Bond Market ETF
+            'BNDX': 0.06,   # Total International Bond ETF
+            'VBR': 0.07,    # Small-Cap Value ETF
+            'VTV': 0.04,    # Value ETF
+            'VSS': 0.09,    # FTSE All-World ex-US Small-Cap ETF
+            'VGSH': 0.035,  # Short-Term Treasury ETF
+            'VGIT': 0.04,   # Intermediate-Term Treasury ETF
+            'VGLT': 0.045,  # Long-Term Treasury ETF
+            'SPY': 0.095,   # SPDR S&P 500 ETF
+            'QQQ': 0.20,    # Invesco QQQ Trust
+            'IWM': 0.19,    # iShares Russell 2000 ETF
+            'EFA': 0.32,    # iShares MSCI EAFE ETF
+            'EEM': 0.68,    # iShares MSCI Emerging Markets ETF
+            'AGG': 0.04,    # iShares Core U.S. Aggregate Bond ETF
+            'TLT': 0.15,    # iShares 20+ Year Treasury Bond ETF
+            'GLD': 0.40,    # SPDR Gold Shares
+            'VNQ': 0.12     # Vanguard Real Estate ETF
+        }
+        
+        # Start with known data if available
+        comprehensive_info = {
+            'symbol': symbol,
+            'fund_name': f"{symbol} Fund",
+            'expense_ratio': known_expense_ratios.get(symbol, None),
+            'fund_family': 'Vanguard' if symbol.startswith('V') or symbol in ['BND', 'BNDX'] else 'Unknown',
+            'net_assets': None,
+            'category': 'Index Fund',
+            'data_source': 'known_data' if symbol in known_expense_ratios else 'unknown'
+        }
+        
+        # Try to get more detailed info from yfinance
+        try:
+            import yfinance as yf
+            
+            ticker_obj = yf.Ticker(symbol)
+            info = ticker_obj.info
+            
+            if info:
+                # Update with yfinance data where available
+                if info.get('longName'):
+                    comprehensive_info['fund_name'] = info['longName']
+                if info.get('fundFamily'):
+                    comprehensive_info['fund_family'] = info['fundFamily']
+                if info.get('totalAssets'):
+                    comprehensive_info['net_assets'] = info['totalAssets']
+                if info.get('category'):
+                    comprehensive_info['category'] = info['category']
+                
+                # Try to extract expense ratio from yfinance
+                yf_expense_ratio = self._extract_expense_ratio_from_yfinance(info)
+                if yf_expense_ratio is not None:
+                    comprehensive_info['expense_ratio'] = yf_expense_ratio
+                    comprehensive_info['data_source'] = 'yfinance'
+                
+                logger.info(f"Enhanced {symbol} data with yfinance")
+                
+        except Exception as e:
+            logger.warning(f"Failed to get yfinance data for {symbol}: {str(e)}")
+        
+        # Try Vanguard website for additional details (for Vanguard funds only)
         if symbol.startswith('V') or symbol in ['BND', 'BNDX']:
-            fund_info = self.get_vanguard_fund_info(symbol)
-        else:
-            fund_info = {}
-        
-        # Supplement with Morningstar/Yahoo data
-        morningstar_info = self.get_morningstar_fund_info(symbol)
-        
-        # Merge information, prioritizing more reliable sources
-        comprehensive_info = {**morningstar_info, **fund_info}
+            try:
+                vanguard_info = self.get_vanguard_fund_info(symbol)
+                if vanguard_info.get('expense_ratio') is not None:
+                    comprehensive_info['expense_ratio'] = vanguard_info['expense_ratio']
+                    comprehensive_info['data_source'] = 'vanguard_website'
+                
+                # Update other fields from Vanguard if better
+                for key in ['fund_name', 'net_assets', 'category']:
+                    if vanguard_info.get(key):
+                        comprehensive_info[key] = vanguard_info[key]
+                        
+                logger.info(f"Enhanced {symbol} data with Vanguard website")
+                
+            except Exception as e:
+                logger.warning(f"Failed to get Vanguard data for {symbol}: {str(e)}")
         
         # Add calculated fields
-        comprehensive_info['data_source'] = 'Multiple'
         comprehensive_info['last_updated'] = pd.Timestamp.now().strftime('%Y-%m-%d')
         
         return comprehensive_info
+    
+    def _extract_expense_ratio_from_yfinance(self, info: Dict) -> Optional[float]:
+        """Extract expense ratio from yfinance info dictionary."""
+        try:
+            # Try various field names that might contain expense ratio
+            expense_fields = [
+                'annualReportExpenseRatio',
+                'expenseRatio', 
+                'totalExpenseRatio',
+                'managementFee',
+                'annualHoldingsTurnover'
+            ]
+            
+            for field in expense_fields:
+                value = info.get(field)
+                if value is not None:
+                    # Convert to percentage if it's in decimal form
+                    if isinstance(value, (int, float)):
+                        if value > 1:  # Assume it's already in percentage
+                            return float(value)
+                        else:  # Assume it's in decimal form, convert to percentage
+                            return float(value * 100)
+                    elif isinstance(value, str):
+                        # Try to extract number from string
+                        import re
+                        match = re.search(r'(\d+\.?\d*)', value)
+                        if match:
+                            return float(match.group(1))
+            
+        except Exception as e:
+            logger.warning(f"Failed to extract expense ratio from yfinance: {str(e)}")
+        
+        return None
     
     def get_fund_expense_ratios(self, symbols: List[str]) -> pd.DataFrame:
         """
