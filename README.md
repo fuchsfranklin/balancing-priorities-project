@@ -1,178 +1,193 @@
-# Indexing Through a New Lens: Applying Multi-Objective Optimization to the Bogleheads Philosophy
-## Project Overview
+# Portfolio Optimization Dashboard
+
+**Factor-based portfolio analysis with diversification and Bogleheads principles**
+
+⚠️ **Note**: Original simple analysis overfitted to 2015-2024. See improved factor-based analysis for meaningful results.
+
+---
+
+## Quick Start
+
+```bash
+# 1. Install dependencies
+pip install -r requirements.txt
 
-In the world of investing, the wisdom of diversification and passive management has been championed by great minds like Burton Malkiel and Jack Bogle. Burton Malkiel, Princeton professor and author of A Random Walk Down Wall Street, famously argued that stock prices are largely unpredictable and that investors are better off buying and holding a broad index fund rather than trying to beat the market [1]. This idea aligns with the efficient market hypothesis, implying that active stock-picking or market timing is unlikely to consistently outperform. Jack Bogle, the founder of Vanguard, built upon similar principles – he pioneered the first index fund and espoused the Bogleheads philosophy of low-cost, broadly diversified investing. Bogle often noted that attempting to outperform the market is a “loser’s game”, because before costs it’s a zero-sum game, and after accounting for fees and taxes, the average active investor lags the market [3]. In fact, over long periods, the vast majority of actively managed funds do underperform their passive benchmarks [4]. For example, S&P’s SPIVA reports show that over a 15-year period ending 2024, no category of active funds had a majority outperforming their index – a sobering statistic illustrating how difficult it is to beat passive strategies [5]. This consensus – that broad, low-cost index investing is hard to beat – underpins the Bogleheads approach.
+# 2. Configure API keys (see docs/SETUP.md)
+echo "TIINGO_API_KEY=your_key" > .env
 
-This project seeks to cast new light on these well-established principles by applying the lens of multi-objective optimization. Rather than simply accepting the classic 3-fund portfolio or a fixed 70/30 stock/bond split as “good enough,” we will rigorously explore the landscape of optimal portfolios when considering multiple goals simultaneously – maximizing returns, minimizing risk, and minimizing costs. By treating portfolio construction as a multi-objective optimization problem, we can identify the set of portfolios that offer the best trade-offs (the Pareto-efficient frontier) and see how closely those align with the traditional index-fund portfolios advocated by Bogleheads. This approach not only reaffirms what we suspect – that broadly diversified, low-cost portfolios are hard to beat – but also brings a fresh, quantitative perspective to indexing, potentially offering new insights into the art and science of building a resilient portfolio. In essence, we are applying operations research techniques to personal finance, to ensure that our portfolio recommendations are grounded in solid data analysis and optimization theory, not just rules of thumb.
+# 3. Download real market data
+python scripts/download_real_data.py
 
-Crucially, we will be pragmatic about realizing this project. We plan to use open-source data and APIs (such as Yahoo Finance via the yfinance Python library) to obtain historical price data for various indices and funds [7]. The analysis will be implemented in Python (or R), and the code will accompany a GitHub whitepaper-style writeup. Where possible, we’ll design the process to accommodate ongoing updates (so the tool could be used for real-time monitoring or periodic re-optimization), but our initial focus will be on a robust historical analysis. Ultimately, the goal is to produce a publication-grade report and open-source code for a personal portfolio project, demonstrating not only the outcome (which we expect may favor something like a VTI+VXUS 70/30 allocation or a global VT portfolio), but also the rigorous process by which the data can unbiasedly lead us to that conclusion.
+# 4. Run factor analysis
+python scripts/run_factor_analysis.py
+
+# 5. Launch dashboard
+streamlit run dashboard.py
+```
 
-## Decision Variables
+**Dashboard**: http://localhost:8501  
+**Full Setup Guide**: See [docs/SETUP.md](docs/SETUP.md)  
+**Real Data Results**: See [docs/REAL_DATA_RESULTS.md](docs/REAL_DATA_RESULTS.md)
 
-In framing the optimization problem, we identify several decision variables – inputs under our control – that define a particular portfolio strategy. Each decision variable is chosen based on its importance in portfolio construction, and each is grounded in the investment literature:
-	- **Asset Allocation (U.S. vs International vs Bonds)** – This represents the proportion of the portfolio allocated to broad asset classes: U.S. equities, international equities, and bonds. Asset allocation is widely regarded as the primary driver of a portfolio’s risk and return characteristics. Classic studies (Brinson, Hood, Beebower 1986) found that over 90% of the variability in a portfolio’s returns is explained by its allocation among asset classes [8]. In our context, this variable will capture, for example, the stock/bond split and the domestic/international split within equities. A Bogleheads-style portfolio often holds a large allocation to total U.S. stock and total international stock (for broad diversification), plus a bond index fund for stability. By letting these allocations vary, we can see which mixes would lie on the efficient frontier. (For instance, is the oft-cited 70% stocks / 30% bonds globally diversified portfolio truly Pareto-optimal in hindsight?)
-	- **Diversification (Number of Stocks/Funds)** – This variable reflects the breadth of diversification in the equity portion (or how many individual assets are held if one were picking stocks directly). A fundamental tenet of the Bogleheads philosophy is “Don’t look for the needle in the haystack. Just buy the haystack.” – i.e. buy the whole market [9]. Holding a greater number of stocks or a total-market index fund can drastically reduce unsystematic risk through the law of large numbers [10]. Empirical research shows that while an 8–10 stock portfolio was once thought sufficient, more recent analyses find on the order of 30–50 stocks are required for maximum diversification benefits, or even market's risk/return profile [11]. In our optimization, we might encode diversification level implicitly (e.g. using index funds equals very high diversification, whereas selecting a few sectors or a small basket of stocks would be low diversification). We expect the Pareto-optimal solutions to favor extremely broad diversification, consistent with index funds – and this will serve as a check against any strategies that concentrate holdings (since concentrated portfolios might achieve high returns but with unacceptable risk). This decision variable is justified by decades of literature on portfolio diversification and the reduction of idiosyncratic risk [12].
-	- **Rebalancing Frequency** – This is how often the portfolio is adjusted back to target allocations (e.g. monthly, quarterly, annually, or not at all). Rebalancing is important for maintaining the risk profile of a portfolio – for example, in a stock/bond portfolio, if stocks have a strong run, the portfolio can drift to a higher equity percentage (higher risk) than intended, so rebalancing sells some stocks to buy bonds and restore the balance. However, rebalancing incurs transaction costs and potential tax events in taxable accounts. Thus, there is a trade-off: rebalance too frequently and you pay a lot in costs; rebalance too infrequently and your risk may drift far from your goal. We will treat rebalancing frequency as a variable (e.g. comparing strategies from never rebalance to rebalance every month, quarter, year, or on a threshold trigger). Literature suggests that annual rebalancing is often a sweet spot for many long-term investors – it maintains control of risk without incurring excessive costs. Vanguard’s research finds that very frequent rebalancing (e.g. monthly/quarterly) gives slightly tighter risk control but at the cost of higher taxes/fees, and that “for many investors, implementing an annual rebalancing is optimal” when considering the trade-off including transaction costs [14]. We will verify how different rebalancing intervals affect our multi-objective outcomes (particularly the cost objective).
-	- **Bond Duration** – For the bond allocation, the duration (interest rate sensitivity) is a key sub-decision. Bonds are not monolithic – long-term bonds tend to offer higher yields but with greater volatility (and bigger potential drawdowns when interest rates rise), whereas short-term bonds or T-bills are more stable but lower yielding. Bond duration can thus affect both the return and risk of the portfolio. Many Boglehead-style portfolios use a total bond market index (such as Vanguard’s BND), which has an intermediate duration around 6–8 years, as a balanced choice. In our optimization, we could allow the bond portion to tilt either to shorter-duration or longer-duration bonds as a decision variable. We include this because interest rate environments change over time, and an optimal strategy might prefer, say, shorter duration during certain periods to minimize risk, or longer duration to maximize yield in others. From a literature standpoint, duration risk is well-understood: “The longer a bond’s duration…the more sensitive its price is to interest rate changes.” Vanguard’s analysis notes that while 2022’s rising rates hurt long-duration bonds, over the long run investors are often rewarded for bearing duration risk via higher coupons [16]. We will examine if the multi-objective optimizer finds value in, for instance, shifting bond duration in response to different market regimes (this could be explored in the reinforcement learning approach as well).
-	- **Factor Tilt (Small-Cap/Value Tilt)** – In addition to broad asset classes, investors sometimes tilt their equity portfolio toward certain factors like small-cap stocks or value stocks, which have historically earned a premium over the market. The Fama-French three-factor model famously showed that, historically, small-cap stocks and high book-to-market “value” stocks outperformed large-cap and growth stocks, respectively [17]. Such tilts can increase expected return, but they also come with periods of underperformance and higher tracking error relative to the market. The Bogleheads philosophy is generally to keep it simple (market-cap-weighted total market funds), but some adherents do choose small value tilts in hopes of higher long-run returns. We will consider an optional decision variable for tilting: for example, an allocation % to a small-cap-value index fund vs. a total market fund. Any tilt should be justified by literature: small-cap and value premiums have been observed over long periods (e.g., Fama and French found these factors explain a lot of equity returns and carry excess returns over time) [18], though the persistence of these premiums in the future is debated. Including this in the optimization will tell us if the data (historical) indeed would have favored a tilt (and to what extent) when multiple objectives are considered. It introduces an interesting dimension: a small/value tilt might improve returns, but could raise volatility (risk) and perhaps costs (if specialized funds have higher fees). The multi-objective approach will evaluate that trade-off objectively.
-	- **Asset Location (Tax-Advantaged vs Taxable Accounts)** – Finally, for investors who have both taxable investment accounts and tax-advantaged accounts (401(k), IRA, etc.), asset location becomes a crucial decision variable. Asset location refers to which investments to hold in which account type to maximize after-tax returns. The general guidance (often cited by Bogleheads and others) is “is "bonds in traditional (tax-deferred), stocks in taxable" [19], because bond interest”, because bond interest is taxed at higher ordinary income rates while equities get favorable tax treatment (qualified dividends, long-term capital gains). By holding tax-inefficient assets (like bonds, REITs) inside IRAs/401ks, and holding tax-efficient stock index funds in taxable accounts, investors can significantly reduce the drag of taxes. Vanguard’s research quantifies this benefit: following good asset location practices can boost after-tax returns by about 0.05% to 0.30% per year on average [20] – which sounds small, but compounds substantially over decades (e.g. $74k less taxes paid over 30 years in one scenario [21]). In our project, we will include tax effects as part of the cost objective (explained below), and asset location decisions (what goes where) are part of the strategy optimization. For simplicity, the code might simulate after-tax returns of different allocations given assumptions about account breakdown. The inclusion of asset location ensures that a strategy isn’t deemed “optimal” from a pre-tax perspective but would falter in the real world due to tax inefficiency. We will ground our tax assumptions in literature (e.g., using prevailing tax rates on dividends, interest, capital gains, and studies like the one by Vanguard that we cited).
+**Alternative** (simulated data):
+```bash
+python scripts/create_factor_data.py
+python scripts/run_factor_analysis.py
+```
 
-Each of the above decision variables will be encoded in our optimization model. By exploring these, we acknowledge not just the classic levers (stock/bond mix) but also finer points that a truly optimal implementation of Boglehead principles would consider. Our approach ensures that any enhancement (like a small-cap tilt or a specific rebalancing rule) is only adopted if it genuinely improves the multi-objective outcome (return-risk-cost) and is backed by evidence.
+---
+
+## Repository Structure
+
+```
+balancing-priorities-project/
+├── blog/                           # R Markdown blog posts
+│   └── international-equity-factor-tilts.Rmd
+├── data/                           # Market data (CSV files)
+│   ├── prices_data.csv
+│   └── returns_data.csv
+├── docs/                           # Documentation
+│   ├── SETUP.md
+│   ├── REAL_DATA_RESULTS.md
+│   └── API_INTEGRATION.md
+├── results/                        # Analysis outputs
+│   ├── optimal_portfolios.csv
+│   └── strategy_comparison.csv
+├── scripts/                        # Python analysis scripts
+│   ├── download_real_data.py
+│   ├── run_factor_analysis.py
+│   └── run_analysis.py
+├── dashboard.py                    # Streamlit dashboard
+├── requirements.txt                # Python dependencies
+├── .env                           # API keys (create this)
+└── README.md
+```
 
-## Objective Variables
+---
 
-Corresponding to those decisions, we have multiple objective variables – the criteria we want to optimize. In a multi-objective setup, we aim to simultaneously improve these goals, which are often in conflict (for example, maximizing return usually increases risk). The three primary objectives (with potential additional sub-objectives) are:
-	- **Maximize Returns:** This is the goal of achieving the highest possible long-term return on the portfolio. In quantitative terms, this could be the average annual return or CAGR (compound annual growth rate) over the simulation period. From an investor’s perspective, this objective captures the growth of wealth. It’s well known historically that equities have provided the highest returns of the major asset classes – for instance, U.S. stocks have returned on the order of ~8–10% annually over many decades, whereas bonds have returned ~4–6% [22] (with inflation around 2–3%, these are 5–7% and 1–3% real returns, respectively). Thus, an optimizer that only focused on returns would likely choose 100% stocks (and possibly even tilt to small-caps for slightly higher returns). However, return can’t be considered alone, hence the need for the next objective.
-	- **Minimize Risk:** This objective captures the desire to reduce volatility and downside potential. We can quantify risk in various ways – the standard approach is the standard deviation of portfolio returns (or variance), as used in Modern Portfolio Theory. We may also look at downside risk measures like max drawdown or CVaR (Conditional Value at Risk) to incorporate tail risks. The Bogleheads philosophy is to choose an asset allocation that matches one’s risk tolerance (often using one’s age or time horizon to decide the stock/bond split). In our multi-objective framework, risk is explicitly taken into account as something to minimize. That means the optimizer will favor including bonds (or other stabilizing assets) because they dampen volatility, and it will penalize portfolios that are too stock-heavy even if their returns are higher. This reflects the common-sense trade-off: a 100% stock portfolio might maximize return but comes with gut-wrenching swings (e.g., ~50% drawdowns in 2008 or 2020), whereas adding bonds can sharply reduce that risk. Essentially, this objective formalizes the concept of the efficient frontier introduced by Harry Markowitz – where for a given level of return, you want the lowest risk. Our Pareto frontier will be a modern extension: e.g. for a given return and cost, find minimum risk. We will likely use variance as the risk metric (since it’s standard and makes the NSGA-II implementation easier), but we will interpret results also in terms of real-world risk (like worst-year performance, etc.). Over long horizons, minimizing volatility also helps prevent bad investor behavior (like panic selling), which is a qualitative justification for this objective.
-	- **Minimize Costs:** Keeping costs low is a core tenet of Boglehead investing – Bogle’s own “Cost Matters Hypothesis” states that the expenses investors pay (fund fees, commissions, taxes, etc.) directly eat into net returns and compound against you over time [23]. In our optimization, the cost objective will include: fund expense ratios, transaction costs (trading fees or slippage from rebalancing), and tax impacts (capital gains taxes from rebalancing, and differential taxation of dividends/interest in taxable accounts). Each of these can be modeled or estimated. For example, if one portfolio uses an expensive mutual fund with a 1% annual fee, and another uses an index ETF at 0.05%, that 0.95% difference is enormous over time (and the optimizer will prefer the low-cost fund, all else equal). Likewise, a strategy that requires frequent trading might incur higher turnover and taxes, making it less optimal once costs are accounted for. Numerous studies and real-world data show the importance of cost minimization: the average expense ratio for passive index funds is now as low as ~0.1%, whereas active funds often charge 0.5%–1% (or more) [24]. That difference alone explains much of why passive funds outperform – it’s hard for an active manager to overcome a 1% annual handicap. We will enforce low costs by including this objective. A practical upshot is that our solution is likely to stick to index ETFs (which have minuscule fees) and avoid unnecessary trading. In effect, by minimizing costs, we expect the optimizer to rediscover the wisdom of Bogle’s mantra: “In investing, you get what you don’t pay for” – every basis point in fees or taxes saved is a basis point added to your return.
-	- **(Optional) Maximize Tax Efficiency / After-Tax Return:** This is closely related to costs, but if we break it out, it would reward portfolios that maximize after-tax returns (which is just returns minus tax costs). We mention it separately because it’s possible to frame the problem in terms of pre-tax returns and a separate objective of tax minimization. However, since we plan to integrate taxes into the cost objective, we likely won’t treat this as a distinct objective to optimize (to avoid redundancy). Still, it’s worth noting: an investor’s true goal is after-tax, net of fee, risk-adjusted return. So we will ensure our analysis focuses on that net outcome.
+## What This Does
 
-Other objectives could be considered (e.g. Maximize Simplicity or Maximize Liquidity), but those are harder to quantify. Simplicity (few funds, easy to manage) is a qualitative goal for Bogleheads; in our project, simplicity will be a byproduct if the optimizer favors, say, one-fund solutions (like VT or a 3-fund combo). We will primarily stick to the three core objectives above, which nicely capture the trade-offs in most portfolio decisions.
+**Two Analyses**:
 
-## Objective Space and the Pareto Frontier
+1. **Simple Analysis** (run_analysis.py): Basic optimization - overfits to recent US outperformance
+2. **Factor Analysis** (run_factor_analysis.py): Includes factor premiums, diversification, Bogleheads principles
 
-When considering all the objectives together, we get an objective space – think of it as a multi-dimensional graph where each portfolio maps to a point whose coordinates are (risk, return, cost). We seek to identify the Pareto-optimal set of portfolios. A portfolio is Pareto-optimal if you cannot improve any one objective without worsening at least one other objective. In other words, it’s on the efficient trade-off frontier. For a simple two-objective case (say return vs risk), this reduces to the classic efficient frontier curve. In our case with three (or more) objectives, the Pareto-optimal set is a surface or frontier in 3D space (or higher-dimensional shape if more objectives). The Pareto front is the set of objective outcomes (risk, return, cost combinations) corresponding to those Pareto-optimal portfolios.
+**Key Findings**:
+- Bogleheads 3-Fund: 0.521 Sharpe (well-diversified, simple)
+- Momentum Tilt: 0.551 Sharpe (factor premium with diversification)
+- Concentrated US: 0.516 Sharpe (period-specific, no diversification)
+- Traditional 60/40: 0.628 Sharpe (lower volatility from bonds)
 
-In plainer terms: out of all possible portfolios (from ultraconservative all-bond to ultra-aggressive all-stock, from cheap index funds to expensive active funds, etc.), the Pareto front will tell us “these particular portfolios are the best you can do for a given mix of priorities.” If you are not on the Pareto front, it means you’re definitively suboptimal – there’s another portfolio that’s strictly better in one objective without being worse in the others.
+---
 
-As a concrete example, imagine two portfolios:
-	•	Portfolio A: Expected return 7%, Risk (volatility) 10%, Cost 0.1%
-	•	Portfolio B: Expected return 7%, Risk 10%, Cost 0.5%
+## Dashboard Features
 
-Here A dominates B because it has the same return and risk but lower cost. So B would not be Pareto-optimal (it’s just strictly worse than A). The frontier is made of portfolios that are not dominated by any others.
+### Overview Tab
+- Interactive efficient frontier visualization
+- Comparison with traditional 60/40 allocation
+- Real data from 2015-2024 (2,516 trading days)
 
-In our results, we will likely present a set of optimal portfolios (perhaps dozens or more) forming the Pareto front. The investor can then choose one based on personal preference (e.g. a trade-off of slightly higher cost for lower risk, etc.). Notably, we expect that broad index portfolios will lie on or very near this frontier, given their high returns (capturing market returns), low risk (very diversified), and minimal cost. The project will thereby provide visual and analytic confirmation of the Bogleheads philosophy in a multi-objective sense.
+### Best Portfolio Tab
+- Detailed allocation breakdown
+- Performance metrics comparison
+- Risk-adjusted return analysis
 
-(Definition) The Pareto front represents the set of solutions where no objective can be improved without sacrificing another [25]. Any point on this front is an efficient trade-off. Portfolios on the Pareto front might differ – for instance, one might be a higher-return, higher-risk choice (more stocks), while another is lower-risk (more bonds) with accordingly lower return, yet both are optimal for different investor preferences. Similarly, one portfolio might incur slightly higher cost (perhaps it uses an active small-cap fund for a tilt) but gain a bit in return – if that trade-off is efficient, it could appear on the frontier for someone who doesn’t mind a small fee for extra return.
+### Factor Analysis Tab
+- Strategy comparison (Bogleheads, 60/40, Factor Tilts)
+- Diversification metrics
+- DFA/Avantis implementation notes
 
-In summary, the objective space analysis will illuminate the trade-offs among return, risk, and cost. It will answer questions like: How much return do you gain by going from 20% bonds to 0% bonds, and is it worth the big jump in risk? Or, how much extra risk do you take on by tilting to small-caps, and does the return increase justify it? Or, is there any situation where paying a higher fund fee makes sense (likely not, but we’ll let the data decide)? The Pareto frontier encapsulates all such optimal decisions.
+### Explore Tab
+- Interactive 3D portfolio visualization
+- Custom filtering by return/risk/Sharpe
+- Top 10 portfolios table
 
-## Methods
+### Compare Tab
+- Side-by-side portfolio comparison
+- Custom portfolio builder
+- Visual allocation charts
 
-To solve a complex multi-objective optimization like this, especially with a potentially large solution space (different asset weightings, etc.), we will employ advanced optimization algorithms and simulation techniques. The key methods we plan to use are:
+---
 
-### Evolutionary Algorithm – NSGA-II
+## Blog Post
 
-We will use the Nondominated Sorting Genetic Algorithm II (NSGA-II) as a primary tool to find Pareto-optimal portfolios. NSGA-II is a popular evolutionary algorithm specifically designed for multi-objective problems [26]. It works by simulating a process of “natural selection” among a population of candidate solutions (portfolios), iteratively improving them with operations akin to genetic mutation and crossover, all while sorting solutions by Pareto dominance. Over successive generations, NSGA-II converges towards the Pareto front and maintains a diverse set of solutions along that front (thanks to its crowding-distance mechanism).
+See `blog/international-equity-factor-tilts.Rmd` for comprehensive analysis of:
+- VXUS alternatives
+- Factor investing with DFA/Avantis
+- International equity allocation strategies
 
-We chose NSGA-II because it has a strong track record in portfolio optimization research [27]. It does not require us to specify a weight for each objective (unlike a weighted-sum approach); instead, it discovers a set of optimal solutions in one run, giving us the whole frontier [28]. This is ideal for our goals, as we want to see the trade-off curve between return, risk, and cost. NSGA-II will handle constraints as well – e.g. the weights must sum to 1, weights must be non-negative, etc., and we can also encode any practical constraints (like a max of 5 funds to preserve simplicity, or limiting extreme tilts).
+**To generate HTML**:
+```r
+rmarkdown::render("blog/international-equity-factor-tilts.Rmd")
+```
 
-Technically, NSGA-II sorts the population into layers of nondomination (Pareto fronts) each generation and uses an elitist strategy (keeping the best solutions found so far) [29]. It also uses a crowding-distance metric to ensure a spread of solutions (so we get portfolios ranging from very low-risk to very high-risk, rather than bunching up). We will initialize the population perhaps with some sensible portfolios (random, plus known points like 100% bonds, 60/40, 100% stocks, etc., just to seed the extremes). Then the algorithm will evolve the population. By the end, we expect NSGA-II to return a set of portfolios that approximate the true Pareto-efficient set.
+---
 
-We will likely leverage a Python library for NSGA-II or implement it using libraries like DEAP or Pyomo. The output will be a set of portfolio weightings. We will analyze those to see patterns (e.g., do they all invest heavily in broad indexes? what are the differences between a low-risk optimal portfolio vs a high-return optimal one? etc.).
+## Data Source
 
+**Real market data** from Tiingo API (2015-2024):
+- VTI: 13.44% return, 17.99% volatility
+- VXUS: 6.51% return, 17.26% volatility
+- BND: 1.44% return, 5.44% volatility
+- VOO: 13.90% return, 17.80% volatility
+- VBR: 10.66% return, 21.36% volatility
+- VTV: 10.97% return, 16.84% volatility
+- MTUM: 14.40% return, 20.03% volatility
 
-## Simulation and Backtesting
+**API Setup**: Create `.env` file with:
+```
+TIINGO_API_KEY=your_key_here
+ALPHA_VANTAGE_KEY=your_key_here
+```
+Get free keys: [Tiingo](https://www.tiingo.com) (1000 req/day), [Alpha Vantage](https://www.alphavantage.co) (25 req/day)
 
-Any proposed strategy or portfolio will be rigorously backtested on historical data. Simulation is a cornerstone of this project: we need to ensure that the multi-objective optimized portfolios actually hold up in real market conditions (historically). Our plan:
-	- **Data:** Gather historical price and dividend data for key indices/funds (e.g., VTI for U.S. stocks, VXUS for international stocks, BND for U.S. bonds, etc., or use index data like S&P 500, MSCI ACWI ex-US, Bloomberg Barclays Agg for bonds). We will likely use monthly or quarterly returns for a multi-decade period to capture different cycles (tech boom, financial crisis, low-rate environment, etc.). Free sources like Yahoo Finance (via yfinance) will provide this data. We’ll also obtain data on small-cap and value indices if tilts are considered (Fama-French factor data is publicly available, or use ETFs like Vanguard Small-Cap Value). For tax and cost assumptions, we’ll input current typical expense ratios (e.g., ~0.05% for index funds) and tax rates (15% on qualified dividends, etc.).
-	- **Backtesting:** For a given portfolio or strategy, we will simulate how $100 (or $10,000) invested would have grown over time, year by year, and compute metrics: CAGR, annual volatility, Sharpe ratio, worst year, max drawdown, and tax-adjusted return (if in taxable). This will be done for all candidate portfolios the algorithms consider, as well as for final optimal portfolios out-of-sample. We’ll ensure to account for rebalancing in the simulation (e.g., an annual rebalance at year-end, incurring whatever trading cost and realizing taxable gains as appropriate).
-	- **Validation:** We might split the data into an in-sample period for optimization and a hold-out period for testing the out-of-sample performance of the Pareto-optimal strategies. This helps avoid overfitting to past market conditions. If our multi-objective optimization picks some exotic portfolio that only worked in history, a hold-out test might reveal it underperforms in a different regime.
-	- **Monte Carlo or Bootstrap:** We could further validate robustness by doing resampling – e.g., block bootstrap the historical returns to generate alternative sequences, or use a Monte Carlo simulator (perhaps based on statistical models) to see how the portfolios might do under different hypothetical future conditions. The idea is to ensure the findings are not an artifact of one specific sequence of returns.
+---
 
-By simulating and backtesting, we also adhere to the Bogleheads ethos of long-term perspective. For instance, a portfolio that shines only in a short period but falters over 30+ years would not be considered truly optimal for long-term investors. We expect that the best multi-objective portfolios will resemble the time-tested diversified index approaches and will demonstrate consistent performance over many decades of data (which we can show in graphs/tables).
+## Key Results
 
-Furthermore, the backtests will let us quantify the objectives: we will see, for each candidate portfolio, its realized return, volatility, and costs. We can then verify that the Pareto front derived by NSGA-II (which works on expected values or simulations) is reflected in actual historical performance. If there are small discrepancies (due to estimation error or variability), we will discuss them. Overall, simulation is our reality check and our way to turn theoretical optimality into practical results.
+| Metric | Traditional 60/40 | Optimized | Improvement |
+|--------|-------------------|-----------|-------------|
+| Sharpe Ratio | 0.667 | 0.772 | +15.8% |
+| Annual Return | 8.0% | 7.7% | -0.3 pp |
+| Annual Risk | 12.0% | 10.0% | -2.0 pp |
+| Annual Cost | 0.04% | 0.04% | 0.0 pp |
 
-### Data Sources and Implementation
+**Optimal Allocation**: 46.5% BND, 21.6% VOO, 15.2% VTI, 8.8% MTUM, 4.3% VTV, 2.5% VXUS, 1.1% VBR
 
-As mentioned, a key aspect is using accessible, free data and ensuring the project is reproducible. We will gather data from sources such as:
-	- **Yahoo Finance** via the yfinance API for historical prices of ETFs and indexes (this source provides daily or monthly data for free). For example, we can get VTI (Total U.S. Stock Market), VXUS (Total International Stock), BND (Total U.S. Bond), BNDX (Int’l Bond), VBR (Small-Cap Value ETF), etc. This will cover our needs for returns. Yahoo Finance data is not guaranteed to be perfect, but for a research project it is usually sufficient and has the benefit of being easily updatable.
-	- **Fama-French Data Library** for factor returns (if needed to validate the size/value premiums or to use as alternative inputs). This is publicly available from Prof. Kenneth French’s website, giving monthly series for market, SMB (size), HML (value), etc., going back to 1920s. Using factor data could allow us to simulate returns for small/value tilts beyond the limited history of ETFs.
-	- **Federal Reserve Economic Data (FRED)** for interest rates and inflation (to compute real returns, or to simulate bond returns if needed). For instance, the 10-year Treasury yield history can inform our bond model. If we simulate bonds, we might use historical yield changes to derive bond index returns.
-	- **Fund Literature** for expense ratios and other costs. For example, Vanguard’s site or Morningstar can give the expense ratios of funds (though for index funds it’s often <0.1%). We will assume reasonable trading costs – many brokers now have zero commissions, so trading cost is low; however, market impact isn’t zero if one were moving large sums, but we can probably ignore that for our scale.
-	- **Tax code references** for tax rates (IRS data, or investment whitepapers). We will assume typical rates (e.g., 15% long-term gains, 2% state tax for simplicity, 0% inside tax-advantaged accounts). The Vanguard research we cited gave an example of how much asset location saved in taxes, which we can use as a guide.
+**Interpretation**: The optimized portfolio achieves 15.8% higher risk-adjusted returns through substantial bond allocation (46.5%), prioritizing Sharpe ratio over absolute returns.
 
-All these data will be integrated in a Python environment. We’ll use libraries like pandas for data handling, NumPy for calculations, maybe PyPortfolioOpt or similar for quick efficient frontier checks, DEAP or Platypus for NSGA-II, and OpenAI Gym or stable-baselines for any reinforcement learning environment if we go that route (there are also specialized environments like OpenAI’s “FinRL” or the gym-portfolio environment, which could accelerate development).
+---
 
-The final output of the project will be a GitHub repository containing the full write-up (likely as a markdown or PDF whitepaper) and the code (Jupyter notebooks or .py scripts) to reproduce the results. The reader (or a potential employer reviewing my portfolio) should be able to run the code to fetch the latest data and see how the optimal allocations might change with new data, enabling ongoing monitoring. If real-time updates are desired, one could even schedule the script to run monthly to see if, say, the Pareto front shifts (though in practice, optimal allocations don’t change drastically unless the market has a regime shift).
+## Methodology
 
-By using free API-driven data, the project remains accessible and transparent. Anyone can update it without needing expensive subscriptions. This also underscores one of the themes of the project: simplicity and openness, very much in the spirit of Bogleheads (who often favor simple, understandable investments over opaque strategies).
+**Optimization Approach**: Multi-objective optimization simultaneously maximizing return, minimizing risk (volatility), and minimizing cost (expense ratios).
 
-## Expected Insights and Conclusions
+**Process**:
+1. Generate 1,000 random portfolio allocations
+2. Calculate return, risk, and cost for each
+3. Identify Pareto frontier (portfolios where no objective can improve without degrading another)
+4. Select top 50 by Sharpe ratio
 
-By the end of this project, we expect to derive both practical and theoretical insights:
-	- We anticipate that the data-driven optimization will validate the classic index fund portfolio. For example, a portfolio roughly around 70% global equities / 30% bonds (often cited as a middle-of-the-road allocation for long-term investors) is likely to appear on or near the Pareto efficient front. This would mean that any portfolio with significantly different weights is either taking more risk for the same return, or getting lower return for the same risk, or incurring higher costs – in other words, the broad index 70/30 (or a similar mix like 60/40 or 80/20 depending on exact parameters) might indeed be Pareto-optimal when all objectives are considered. If the optimizer instead suggests a different allocation (say 80% stocks because the historical premium was so high that it justifies the risk), we’ll see that too – but then we’ll also see how much extra volatility that brings and an investor can decide if it’s worth it.
-	- We will likely observe the value of international diversification. Bogleheads sometimes debate how much to allocate internationally (some say anywhere from 20% of stocks to market-cap weight ~45% of stocks). Our multi-objective approach will shed light: if international diversification helped reduce volatility (due to less-than-perfect correlation) without sacrificing return, the optimizer will give a non-zero weight to international stocks. Given that global ex-US stocks had periods of underperformance vs U.S. in the 2010s, the return-maximizer might overweight U.S., but the risk objective might favor some international. The result could be a Pareto-optimal mix that, for instance, has 30% of equity in VXUS and 70% in VTI. It will be informative to quantify how much risk reduction one gets from international stocks and whether that is a free lunch (diversification) or comes at a slight cost in return. This moves the discussion from rule-of-thumb to data-backed.
-	- We will quantify the cost of costs – by comparing net outcomes. For instance, we might include one scenario portfolio that uses an active fund with 1% fee and see that, to achieve the same net return, it had to take more risk or ended up dominated by a lower-cost alternative. This reinforces in concrete terms Bogle’s statement about the tyranny of compounding costs. Possibly, we’ll show that a 0.5% higher expense ratio could translate to hundreds of thousands of dollars less in an investor’s ending wealth over 30 years.
-	- The project will also offer a dynamic perspective if the reinforcement learning element is implemented. We might find that a modest tactical adjustment (like de-risking during periods of extreme volatility) can improve the multi-objective outcome slightly – but also that such adjustments have to be done carefully to not become market timing (which could backfire). If the MORL agent simply learns to stay the course (which could happen if the data shows that trying to time the market doesn’t help risk-adjusted returns much), that itself is a profound result: it would echo the Bogleheads advice “Don’t do something, just stand there!” (i.e., often the best action is to stick to the plan). On the other hand, if it learns something like “rebalance during downturns more aggressively to take advantage of recovery” (which some investors do manually), that could be a useful insight to discuss.
+**Assets**: VTI, VXUS, BND, VOO, VBR, VTV, MTUM
 
-In terms of narrative, our results section in the report will likely present scenarios such as:
-	- An efficient frontier plot in return-risk space for a given cost level, highlighting where the standard 3-fund portfolio lies.
-	- A 3D plot or parallel axes plot showing the trade-offs among the three objectives, and highlighting specific named portfolios (like “100% stocks”, “60/40 index”, “40/60 conservative”, “with small-cap tilt”, etc.) to show which are dominated and which are efficient.
-	- Tables comparing key metrics of some optimal portfolios vs popular simple portfolios (e.g., comparing a Pareto-optimal portfolio to a Vanguard Target Date fund).
-	- Perhaps a heatmap of allocations among the Pareto set, showing how as you move along the frontier from low-risk to high-risk, the percentage in stocks increases, etc. This would vividly demonstrate, for example, the principle of higher equity for higher return, but with cost always kept minimal.
+**Data**: 2015-2024 real market data from Tiingo API
 
-Ultimately, we expect the optimal strategy to be a refinement of the Bogleheads philosophy, not a repudiation of it. It’s likely to be something like: “Invest in a globally diversified equity index and high-quality bond index, tilt modestly only if justified, rebalance infrequently (about yearly), and hold in appropriate accounts to minimize tax – this combo yields near-maximal returns for a given risk and cost.” In other words, the project should conclude that the seemingly simple advice of the Bogleheads actually does stand up to rigorous multi-objective scrutiny. Any deviations or surprises (e.g., maybe the optimizer says 0% international would have been optimal historically due to U.S. outperformance – a contentious point!) will be discussed with care and in context of academic research (perhaps pointing out regime dependence or the importance of diversification despite slightly lower past returns).
+---
 
-## Mathematical Rigor and Future Work
+## Future Enhancement
 
-While our project is rooted in simulation and empirical optimization, it also paves the way for more formal mathematical analysis. In a future, more theoretical project, one could attempt to prove certain properties of optimal index portfolios under a given model. For example, under the classical CAPM assumptions, the market-cap weighted market portfolio is mean-variance efficient – it lies on the efficient frontier by construction. This is a theoretical justification for holding the global market portfolio (which is essentially what a combination of VTI+VXUS or VT represents). One could extend this to a three-objective framework (mean-variance-cost): intuitively, the market portfolio at zero cost is Pareto-optimal; if costs are introduced, the Pareto-optimal solution would shift towards the lowest-cost implementation of the market portfolio (index funds) because any additional cost would dominate. A formal proof might involve showing that for any portfolio with higher cost, there’s a costless (or cheaper) portfolio with equal or better risk-return (hence dominating it). This could be approached by introducing a Lagrange multiplier for the cost constraint or by extending the Euler-Lagrange conditions for efficient portfolios to include a cost term.
+Factor investing implementation will utilize **Dimensional Fund Advisors (DFA)** and **Avantis** ETFs for:
+- Superior factor exposure
+- Lower expense ratios (0.15-0.30%)
+- Tax efficiency through patient trading
+- Academic research-backed methodology
 
-Another avenue for formal work is to derive conditions under which including additional factors (like small/value) improves a multi-objective outcome. The literature on Robust Portfolio Optimization and Multi-objective programming could provide theoretical bounds or guarantees. For instance, one might prove that if a factor has a significantly positive Sharpe ratio and low correlation, then a small allocation to it can improve the return-risk trade-off (thus being Pareto-improving) – but if its excess return is not high enough, the improvement might not materialize after costs. This would tie into the concept of two-fund separation theorems and could be extended to three-fund separation when including a costless asset (the low-cost index) vs a costly active fund, etc.
+---
 
-## References
+## Disclaimer
 
-[1] Malkiel, Burton G. "A Random Walk Down Wall Street." W. W. Norton & Company, 2019.
+This analysis is for educational and research purposes only. Past performance does not guarantee future results. The optimized portfolio reflects 2015-2024 market conditions and may not be suitable for all investors or future market environments. Consult a qualified financial advisor before making investment decisions.
 
-[2] Bogleheads.org. "The Bogleheads' Guide to Investing." Wiley, 2006.
+## License
 
-[3] Sharpe, William F. "The Arithmetic of Active Management." Financial Analysts Journal, 1991.
-
-[4] Ellis, Charles D. "Winning the Loser's Game: Timeless Strategies for Successful Investing." McGraw-Hill Education, 2017.
-
-[5] Bernstein, William J. "The Four Pillars of Investing." McGraw-Hill, 2010.
-
-[6] Swensen, David F. "Unconventional Success: A Fundamental Approach to Personal Investment." Free Press, 2005.
-
-[7] Yahoo Finance. "Historical Market Data API." Accessed via yfinance Python library.
-
-[8] Brinson, Gary P., L. Randolph Hood, and Gilbert L. Beebower. "Determinants of Portfolio Performance." Financial Analysts Journal, 1986.
-
-[9] Bogle, John C. "The Little Book of Common Sense Investing." Wiley, 2007.
-
-[10] Campbell, John Y., Andrew W. Lo, and A. Craig MacKinlay. "The Econometrics of Financial Markets." Princeton University Press, 1997.
-
-[11] Statman, Meir. "How Many Stocks Make a Diversified Portfolio?" Journal of Financial and Quantitative Analysis, 1987.
-
-[12] Markowitz, Harry. "Portfolio Selection." Journal of Finance, 1952.
-
-[13] Vanguard Group. "Best Practices for Portfolio Rebalancing." Investment Strategy Group, 2020.
-
-[14] Vanguard Group. "The Case for Annual Rebalancing." Investment Strategy Group, 2021.
-
-[15] Fabozzi, Frank J. "Bond Portfolio Management." John Wiley & Sons, 2001.
-
-[16] Vanguard Group. "Bond Duration and Interest Rate Risk." Fixed Income Research, 2022.
-
-[17] Fama, Eugene F., and Kenneth R. French. "The Cross-Section of Expected Stock Returns." Journal of Finance, 1992.
-
-[18] Fama, Eugene F., and Kenneth R. French. "Common Risk Factors in the Returns on Stocks and Bonds." Journal of Financial Economics, 1993.
-
-[19] Dammon, Robert M., Chester S. Spatt, and Harold H. Zhang. "Optimal Asset Location and Allocation with Taxable and Tax-Deferred Investing." Journal of Finance, 2004.
-
-[20] Vanguard Group. "Principles of Sound Tax-Efficient Investing." Personal Advisor Services, 2019.
-
-[21] Vanguard Group. "Asset Location for Taxable Investors." Tax-Efficient Investing Research, 2021.
-
-[22] Siegel, Jeremy J. "Stocks for the Long Run." McGraw-Hill Education, 2014.
-
-[23] Bogle, John C. "Common Sense on Mutual Funds." Wiley, 2010.
-
-[24] Investment Company Institute. "Investment Company Fact Book." Annual Report, 2023.
-
-[25] Deb, Kalyanmoy. "Multi-Objective Optimization Using Evolutionary Algorithms." Wiley, 2001.
-
-[26] Deb, Kalyanmoy, et al. "A Fast and Elitist Multiobjective Genetic Algorithm: NSGA-II." IEEE Transactions on Evolutionary Computation, 2002.
-
-[27] Metaxiotis, Kostas, and Konstantinos Liagkouras. "Multiobjective Evolutionary Algorithms for Portfolio Management: A Comprehensive Literature Review." Expert Systems with Applications, 2012.
-
-[28] Coello, Carlos A. Coello. "Evolutionary Multi-Objective Optimization: A Historical View of the Field." IEEE Computational Intelligence Magazine, 2006.
-
-[29] Zitzler, Eckart, Marco Laumanns, and Lothar Thiele. "SPEA2: Improving the Strength Pareto Evolutionary Algorithm." TIK-Report, 2001.
-
-[30] Van Moffaert, Kristof, and Ann Nowé. "Multi-objective reinforcement learning using sets of Pareto dominating policies." Journal of Machine Learning Research, 2014.
-
-[31] Roijers, Diederik M., Peter Vamplew, Shimon Whiteson, and Richard Dazeley. "A survey of multi-objective sequential decision-making." Journal of Artificial Intelligence Research, 2013.
-
-[32] Almahdi, Safwan, and Simon Y. Yang. "An adaptive portfolio trading system: A risk-return portfolio optimization using recurrent reinforcement learning with expected maximum drawdown." Expert Systems with Applications, 2017.
+MIT License - Free for educational and research use

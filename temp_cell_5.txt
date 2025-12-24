@@ -1,0 +1,66 @@
+import pandas as pd
+import os
+import time
+
+# For blog display: Use pre-downloaded data from CSV
+# To run this yourself, get a free API key from https://www.tiingo.com
+# and set: TIINGO_API_KEY = 'your_key_here'
+
+# Load from existing data file instead of API call
+try:
+    prices_wide = pd.read_csv('../data/prices_data.csv', index_col=0, parse_dates=True)
+    prices_wide = prices_wide[['VTI', 'VXUS']]  # Select only these two
+    prices_wide = prices_wide.loc['2011-01-28':'2024-12-31']  # VXUS inception to present
+except FileNotFoundError:
+    print('Data file not found. Please download data first.')
+    raise
+
+# Calculate returns
+returns = prices_wide.pct_change().dropna()
+
+# Define allocations
+allocations = {
+    '100% US (VTI)': {'VTI': 1.0, 'VXUS': 0.0},
+    '60% US / 40% Intl': {'VTI': 0.6, 'VXUS': 0.4},
+    '100% Intl (VXUS)': {'VTI': 0.0, 'VXUS': 1.0}
+}
+
+# Calculate growth
+growth_data = {}
+for name, weights in allocations.items():
+    portfolio_returns = (returns['VTI'] * weights['VTI'] + returns['VXUS'] * weights['VXUS'])
+    growth_data[name] = (1 + portfolio_returns).cumprod()
+
+growth_df = pd.DataFrame(growth_data)
+
+# Display results
+print('Growth of $1 invested (2013-2023):')
+print('='*50)
+for col in growth_df.columns:
+    final_value = growth_df[col].iloc[-1]
+    total_return = (final_value - 1) * 100
+    print(f'{col:25s}: ${final_value:.2f} ({total_return:+.1f}%)')
+
+# Show last few years
+print('\nRecent performance (last 5 data points):')
+print(growth_df.tail())
+
+# Use plotly for interactive plot (works better in Jupyter)
+try:
+    import plotly.graph_objects as go
+    fig = go.Figure()
+    for col in growth_df.columns:
+        dash = 'dash' if '60%' in col else 'solid'
+        width = 3 if '60%' in col else 2
+        fig.add_trace(go.Scatter(x=growth_df.index, y=growth_df[col], name=col, 
+                                line=dict(dash=dash, width=width)))
+    fig.update_layout(title='Growth of $1: US vs International Mix',
+                     xaxis_title='Year', yaxis_title='Portfolio Value ($)',
+                     hovermode='x unified')
+    fig.show()
+except ImportError:
+    print('\nInstall plotly for interactive charts: pip install plotly')
+
+# Note: This code uses VTI and VXUS data from 2011-2024 (VXUS inception to present),
+# calculates returns for three allocation scenarios (100% US, 60/40, 100% Intl),
+# and shows how $1 would have grown in each strategy.

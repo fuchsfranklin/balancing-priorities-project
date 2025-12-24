@@ -1,0 +1,38 @@
+# Compare VXUS and DFAX performance since DFAX inception (Sept 2021)
+import pandas as pd
+import plotly.graph_objects as go
+
+# Load data
+df = pd.read_csv('../data/prices_data.csv', index_col=0, parse_dates=True)
+
+# Filter to DFAX inception date
+start_date = df['DFAX'].first_valid_index()
+vxus = df.loc[start_date:, 'VXUS']
+dfax = df.loc[start_date:, 'DFAX']
+
+# Normalize to 1.0 at start
+vxus_norm = vxus / vxus.iloc[0]
+dfax_norm = dfax / dfax.iloc[0]
+
+# Calculate metrics
+total_return_vxus = (vxus_norm.iloc[-1] - 1) * 100
+total_return_dfax = (dfax_norm.iloc[-1] - 1) * 100
+
+print(f'Performance since DFAX inception ({start_date.date()}):')
+print('='*50)
+print(f'VXUS Total Return: {total_return_vxus:.1f}%')
+print(f'DFAX Total Return: {total_return_dfax:.1f}%')
+print(f'DFAX Outperformance: {total_return_dfax - total_return_vxus:.1f}%')
+
+# Create visualization
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=vxus_norm.index, y=vxus_norm, name='VXUS (Total Intl Market)', line=dict(width=2)))
+fig.add_trace(go.Scatter(x=dfax_norm.index, y=dfax_norm, name='DFAX (DFA World ex US Core Equity)', line=dict(width=2, dash='dash')))
+fig.update_layout(
+    title='VXUS vs DFAX: Growth of $1 Since DFAX Inception',
+    xaxis_title='Date',
+    yaxis_title='Growth of $1',
+    hovermode='x unified',
+    template='plotly_white'
+)
+fig.show()
