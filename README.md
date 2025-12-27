@@ -41,7 +41,7 @@ This post examines whether Dimensional Fund Advisors (DFA) ETFs can serve as imp
 - **ETF Prices**: [Tiingo API](https://www.tiingo.com/) — Historical end-of-day prices
 - **Factor Returns**: [Ken French Data Library](https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html) — Fama-French 5-factor data
 
-## Running the Analysis
+## Running the Analysis Yourself
 
 ```bash
 # Install dependencies
