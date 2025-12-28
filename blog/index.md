@@ -1,6 +1,6 @@
-# Pure Indexing, Flirting with Factor Tilts, and Finding Intermediaries: Thoughts on Addressing Index Inefficiencies in the Traditional Three-Fund Portfolio
+# Pure Indexing, Flirting with Factors, and Finding Intermediaries: Thoughts on Addressing Three-Fund Portfolio Inefficiencies
 
-
+All code, data, and plots for this post are available on [GitHub](https://github.com/fuchsfranklin/balancing-priorities-project).
 
 ## Post Rationale
 
@@ -14,18 +14,20 @@ This post is just a string of semi-structured thoughts (by yours truly, your ave
 
 The post is structured as follows, where I try to think through some (I believe) given basics at a high level, but of investing is of course endlessly complex and again, this is not financial advice.
 
-1. **Index Funds: The Evidence-Based Path** - Why broad market indexing works (for the average retail investor such as myself)
-2. **The Science Behind Indexing** - CAPM, EMH, and Modern Portfolio Theory foundations
-3. **Factors** - Possibly moving beyond market beta to capture additional risk premiums
-4. **The Three-Fund Portfolio** - Bogleheads approach with VTI/VXUS/BND
-5. **VTI vs DFUS** - Upgrading US equity exposure 
-6. **The International Challenge** - Why finding a "VXUS 2.0" is complicated
+1. [**Index Funds: The Evidence-Based Path**](#index-funds-the-evidence-based-path-to-wealth) - Why broad market indexing works (for the average retail investor such as myself)
+2. [**The Science Behind Indexing**](#the-science-behind-indexing) - CAPM, EMH, and Modern Portfolio Theory foundations
+3. [**Factors**](#factors) - Possibly moving beyond market beta to capture additional risk premiums
+4. [**The Three-Fund Portfolio**](#the-three-fund-portfolio) - Bogleheads approach with VTI/VXUS/BND
+5. [**VTI vs DFUS**](#vti-vs-dfus) - Upgrading US equity exposure 
+6. [**The International Challenge**](#the-international-challenge) - Why finding a "VXUS 2.0" is complicated
+7. [**Quantifying Factor Exposures: 5-Factor Regressions**](#quantifying-factor-exposures-5-factor-regressions) - Measuring systematic risk with Fama-French
+8. [**References**](#references) - Sources
 
 ---
 
 ### Index Funds: The Evidence-Based Path to Wealth
 
-Investing can be mind-numbingly complex, but one simple strategy has seemingly stood the test of time (for average retail investors such as myself): broad market index funds. Decades ago, economist Burton Malkiel asserted (Malkiel, 2023) that ordinary investors are better off buying and holding a low-cost index fund than trying to pick stocks or hire expensive active managers. He backed it up with hard data: ~$10,000 invested in an S&P 500 index fund in 1969 grew to over ~$736,000 by 2014, dramatically outpacing the ~$501,000 result from the average actively managed fund (whose fees and trading shenanigans ate into returns). In the long run, the index fund investor came out about ~50% richer than the fund-pickers on average. No stock-tipping magic required. Making this more accessible to the general public more recently, personal finance author JL Collins is on the same page (whose book was my first exposure to understanding indexing in an accessible manner quite a while back). In *The Simple Path to Wealth* (Collins, 2016), Collins boils investing down to a few core rules: spend less than you earn, avoid debt, and invest the rest in low-cost index funds. It doesn't get much simpler (or more behaviorally sensible) than that. Collins basically says: you can become a millionaire just by consistently adding money into a total market index fund or ETF equivalent (like Vanguard's VTI or VTSAX). Both Malkiel and Collins cite mountains of evidence that passive index investing beats most active strategies after costs. In other words, you're better off buying "the haystack" (the entire market) than searching for that one needle of a hot stock. Why do index funds win so often? Enter some foundational finance theory (as I understand it).
+Investing can be mind-numbingly complex, but one simple strategy has seemingly stood the test of time (for average retail investors such as myself): broad market index funds. Decades ago, economist Burton Malkiel asserted (Malkiel, 2023) that ordinary investors are better off buying and holding a low-cost index fund than trying to pick stocks or hire expensive active managers. He backed it up with hard data: ten thousand dollars invested in an S&P 500 index fund in 1969 grew to over 736 thousand dollars by 2014, dramatically outpacing the 501 thousand dollar result from the average actively managed fund (whose fees and trading shenanigans ate into returns). In the long run, the index fund investor came out about 50% richer than the fund-pickers on average. No stock-tipping magic required. Making this more accessible to the general public more recently, personal finance author JL Collins is on the same page (whose book was my first exposure to understanding indexing in an accessible manner quite a while back). In *The Simple Path to Wealth* (Collins, 2016), Collins boils investing down to a few core rules: spend less than you earn, avoid debt, and invest the rest in low-cost index funds. It doesn't get much simpler (or more behaviorally sensible) than that. Collins basically says: you can become a millionaire just by consistently adding money into a total market index fund or ETF equivalent (like Vanguard's VTI or VTSAX). Both Malkiel and Collins cite mountains of evidence that passive index investing beats most active strategies after costs. In other words, you're better off buying "the haystack" (the entire market) than searching for that one needle of a hot stock. Why do index funds win so often? Enter some foundational finance theory (as I understand it).
 
 ---
 
@@ -53,7 +55,7 @@ Let us first start with the beloved Three-Fund Portfolio. As I understand it, it
 * (2) a total international stock index fund (like Vanguard Total International, ticker VXUS; Vanguard, 2024)
 * (3) a total U.S. bond market fund (like BND).
    
- That's it. With just three funds, you get exposure to literally thousands of stocks around the globe and the broad U.S. investment-grade bond universe. It's hard to overstate how much diversification and simplicity you get in this minimalist setup. Bogleheads like Taylor Larimore (Bogleheads Wiki, 2024) (co-author of *The Bogleheads' Guide*) tout the three-fund portfolio's many virtues: extremely low cost, broad diversification, no overlapping holdings, minimal maintenance, and no reliance on any fund manager. You effectively own the entire world's public markets in one neat package, at a fee that's often 0.05% or less per year. Tough to beat. Of course, you still have to decide your allocation, i.e. what percentage in each of the three funds. This usually comes down to your risk tolerance, goals, and circumstances. Stocks vs bonds is the big lever (a higher bond percentage is usually seen as safer, but yielding lower long-term returns). And within stocks, how much U.S. vs international? Reasonable people (and unreasonable ones on internet forums) debate the "perfect" ratio. Vanguard's research suggests anywhere from 20% to 50% of stocks in international is reasonable, with ~40% being market-weight (although for their 2026 outlook I just read that Vanguard recommends flipping the amounts of stocks and bonds from 60% stocks and 40% bonds to 60% bonds and 40% stocks, but do not quote me on that). Jack Bogle himself and the earlier mentioned JL Collins were both famously lukewarm on international, preferring an 80/20 or even 100/0 home bias (he believed U.S. companies already have global exposure), which again could be a whole post in and of itself. Meanwhile, others argue for market-cap weights (~60% US, 40% international currently). In practice, many Bogleheads split the difference. For example, one common recommendation for a balanced portfolio is 50% VTI (U.S.), 20% VXUS (international), 30% BND (bonds). That would be a 70/30 stock/bond mix, with international making up ~29% of stocks. Another example (from Vanguard's own target-risk funds for retirees) is ~40% VTI, 20% VXUS, 40% BND (so 60/40 with 1/3 of stocks international). There's no single right answer, but the key is these portfolios are broadly diversified and simple. For our purposes here, I'm focusing on the equity portion (the stocks), since that's where the factor intrigue comes in. Bonds (BND) are important, but they're not part of the "factor investing" vs "index" debate for this post specifically; so we will simplify and say they're just for stability for now. So let's set BND aside and talk VTI + VXUS as the classic equity allocation. How has a basic VTI/VXUS global stock combo performed? Quite well historically, albeit with some U.S. vs international performance cycles that tempt investors to stray. To visualize this, let's do a quick backtest with some code. We'll compare different mixes of VTI and VXUS, say from all-U.S. to all-international, and see the historical performance (and we'll exclude bonds for now, keeping it apples-to-apples for the sake of the following section).
+ That's it. With just three funds, you get exposure to literally thousands of stocks around the globe and the broad U.S. investment-grade bond universe. It's hard to overstate how much diversification and simplicity you get in this minimalist setup. Bogleheads like Taylor Larimore (Bogleheads Wiki, 2024) (co-author of *The Bogleheads' Guide*) tout the three-fund portfolio's many virtues: extremely low cost, broad diversification, no overlapping holdings, minimal maintenance, and no reliance on any fund manager. You effectively own the entire world's public markets in one neat package, at a fee that's often 0.05% or less per year. Tough to beat. Of course, you still have to decide your allocation, i.e. what percentage in each of the three funds. This usually comes down to your risk tolerance, goals, and circumstances. Stocks vs bonds is the big lever (a higher bond percentage is usually seen as safer, but yielding lower long-term returns). And within stocks, how much U.S. vs international? Reasonable people (and unreasonable ones on internet forums) debate the "perfect" ratio. Vanguard's research suggests anywhere from 20% to 50% of stocks in international is reasonable, with 40% being market-weight (although for their 2026 outlook I just read that Vanguard recommends flipping the amounts of stocks and bonds from 60% stocks and 40% bonds to 60% bonds and 40% stocks, but do not quote me on that). Jack Bogle himself and the earlier mentioned JL Collins were both famously lukewarm on international, preferring an 80/20 or even 100/0 home bias (he believed U.S. companies already have global exposure), which again could be a whole post in and of itself. Meanwhile, others argue for market-cap weights (60% US, 40% international currently). In practice, many Bogleheads split the difference. For example, one common recommendation for a balanced portfolio is 50% VTI (U.S.), 20% VXUS (international), 30% BND (bonds). That would be a 70/30 stock/bond mix, with international making up 29% of stocks. Another example (from Vanguard's own target-risk funds for retirees) is 40% VTI, 20% VXUS, 40% BND (so 60/40 with 1/3 of stocks international). There's no single right answer, but the key is these portfolios are broadly diversified and simple. For our purposes here, I'm focusing on the equity portion (the stocks), since that's where the factor intrigue comes in. Bonds (BND) are important, but they're not part of the "factor investing" vs "index" debate for this post specifically; so we will simplify and say they're just for stability for now. So let's set BND aside and talk VTI + VXUS as the classic equity allocation. How has a basic VTI/VXUS global stock combo performed? Quite well historically, albeit with some U.S. vs international performance cycles that tempt investors to stray. To visualize this, let's do a quick backtest with some code. We'll compare different mixes of VTI and VXUS, say from all-U.S. to all-international, and see the historical performance (and we'll exclude bonds for now, keeping it apples-to-apples for the sake of the following section).
 
  ---
 
@@ -100,7 +102,7 @@ DFUS intentionally excludes specific subsets of the market with historically poo
 - **Small-cap "junk" stocks**: Small growth stocks with weak profitability and aggressive investment, a.k.a. the "small crap" that tends to drag on returns. Despite these exclusions, DFUS maintains essentially the same factor exposure as VTI, as we'll confirm in the regression analysis below.
 - **REITs**: Excluded as a product design choice for tax efficiency
 
-Thus, while DFUS holds ~2,430 stocks versus VTI's ~3,564, those excluded stocks only represent about 3.6% of market cap weight. Of that, ~2.6% is REITs and only ~1% is the small-cap exclusions. And that excluded 1% of small-cap stocks returned roughly -10% annualized during the sample period, so their absence actually helped performance.
+Thus, while DFUS holds 2,430 stocks versus VTI's 3,564, those excluded stocks only represent about 3.6% of market cap weight. Of that, 2.6% is REITs and only 1% is the small-cap exclusions. And that excluded 1% of small-cap stocks returned roughly -10% annualized during the sample period, so their absence actually helped performance.
 
 Ben also showed that even when you add a REIT allocation back into the data to match VTI's composition, DFUS still shows an excess return, which aligns perfectly with the research on index rebalancing costs. The REIT exclusion is primarily for tax reasons; the outperformance comes from avoiding the structural inefficiencies.
 
@@ -144,15 +146,15 @@ Alright, U.S. stocks accounted for, let us move to the international side, where
 
 ### The International Challenge
 
-Vanguard's VXUS (Total International Stock ETF) is the international analog to VTI: a cap-weighted index of all non-U.S. stocks in both developed and emerging markets. VXUS is cheap (~0.07% expense ratio) and very broad (around 7,500 stocks in ~45 countries). If I want to replicate my DFUS logic abroad, I'd look for a DFA ETF that does "total international" with similar slight improvements. However, no single DFA ETF seems to be a perfect VXUS equivalent at the moment, especially not with the ultra-low fee and simplicity of DFUS.
+Vanguard's VXUS (Total International Stock ETF) is the international analog to VTI: a cap-weighted index of all non-U.S. stocks in both developed and emerging markets. VXUS is cheap (0.07% expense ratio) and very broad (around 7,500 stocks in 45 countries). If I want to replicate my DFUS logic abroad, I'd look for a DFA ETF that does "total international" with similar slight improvements. However, no single DFA ETF seems to be a perfect VXUS equivalent at the moment, especially not with the ultra-low fee and simplicity of DFUS.
 
-Here's the landscape as I understand it: DFA chose to split the world ex-US into two pieces, one for developed markets and one for emerging markets. These are DFAI (Dimensional International Core Equity Market ETF) and DFAE (Dimensional Emerging Core Equity Market ETF). Both are actively managed, factor-oriented funds (the "Core Equity" name hints that they tilt toward size/value/profitability, akin to DFA's classic strategies). To mirror VXUS (which is ~75% developed, ~25% emerging by market cap), you'd have to hold both DFAI and DFAE in roughly that ratio. That's doable, but it's more complicated than a single fund, and crucially the fees are higher. As of now, DFAI's expense ratio is ~0.18% and DFAE's is ~0.36% (emerging markets funds tend to cost more). Blending 75/25, the weighted expense comes out to ~0.23%, around triple VXUS's fee. Not outrageous, but it gives one pause.
+Here's the landscape as I understand it: DFA chose to split the world ex-US into two pieces, one for developed markets and one for emerging markets. These are DFAI (Dimensional International Core Equity Market ETF) and DFAE (Dimensional Emerging Core Equity Market ETF). Both are actively managed, factor-oriented funds (the "Core Equity" name hints that they tilt toward size/value/profitability, akin to DFA's classic strategies). To mirror VXUS (which is 75% developed, 25% emerging by market cap), you'd have to hold both DFAI and DFAE in roughly that ratio. That's doable, but it's more complicated than a single fund, and crucially the fees are higher. As of now, DFAI's expense ratio is 0.18% and DFAE's is 0.36% (emerging markets funds tend to cost more). Blending 75/25, the weighted expense comes out to 0.23%, around triple VXUS's fee. Not outrageous, but it gives one pause.
 
 What about performance and approach? DFAI and DFAE are tilted funds. According to DFA, DFAI invests in companies of all sizes in developed markets, but with "increased exposure to smaller capitalization, lower relative price, and higher profitability" stocks. Likewise, DFAE targets emerging market stocks with an emphasis on value and profitability. They're not trying to match the index; they're trying to beat it by systematically overweighting those factors. So even though DFA lists these funds under their market funds, they actually do contain factor tilts. Over long periods, they could outperform VXUS (just as DFA's other factor funds have often beaten cap-weight indices historically, but again that is not within the scope of this post). They will also deviate more from VXUS in the short term.
 
 Additionally, Dimensional does offer one single ETF for international: DFAX (Dimensional World ex-US Core Equity 2 ETF). DFAX bundles developed and emerging in one fund (closer to a VXUS counterpart). But two issues: 
 
-(1) Its expense ratio is ~0.23%, higher than VXUS (because "Core 2" means heavier tilts toward small/value with more trading and more costs). 
+(1) Its expense ratio is 0.23%, higher than VXUS (because "Core 2" means heavier tilts toward small/value with more trading and more costs). 
 
 (2) It's actively tilting quite a bit, so it's definitely not a plain-vanilla index replacement, as DFUS is to VTI. DFAX is essentially the next step on the factor continuum, a factor fund for international stocks.
 
@@ -240,13 +242,13 @@ For now, my plan is to stick with VXUS for international while I continue resear
 ### Books
 
 **Malkiel, B. G.** (2023). *A Random Walk Down Wall Street: The Time-Tested Strategy for Successful Investing* (50th Anniversary Edition). W. W. Norton & Company. ISBN: 978-0393358389.  
-[https://wwnorton.com/books/9780393358389](https://wwnorton.com/books/9780393358389)
+[https://wwnorton.com/books/9781324035435](https://wwnorton.com/books/9781324035435)
 
 **Collins, J. L.** (2016). *The Simple Path to Wealth*. JL Collins LLC. ISBN: 978-1533667922.  
 [https://www.simplepathtowealth.com/](https://www.simplepathtowealth.com/)
 
 **Swedroe, L. & Berkin, A.** (2016). *Your Complete Guide to Factor-Based Investing: The Way Smart Money Invests Today*. Harriman House. ISBN: 978-0857195387.  
-[https://www.harriman-house.com/completeguidefactorinvesting](https://www.harriman-house.com/completeguidefactorinvesting)
+[https://www.amazon.com/Your-Complete-Guide-Factor-Based-Investing-ebook/dp/B01N7FCW2D](https://www.amazon.com/Your-Complete-Guide-Factor-Based-Investing-ebook/dp/B01N7FCW2D)
 
 **Ang, A.** (2014). *Asset Management: A Systematic Approach to Factor Investing*. Oxford University Press. ISBN: 978-0199959327.  
 [https://global.oup.com/academic/product/asset-management-9780199959327](https://global.oup.com/academic/product/asset-management-9780199959327)
@@ -272,8 +274,8 @@ For now, my plan is to stick with VXUS for international while I continue resear
 
 ### Videos & Multimedia
 
-**Felix, B.** (2025). Why DFUS Outperformed VTI (And What It Means for Index Funds). *Rational Reminder / YouTube*.  
-[https://www.youtube.com/watch?v=qTw-rDF9XOg](https://www.youtube.com/watch?v=qTw-rDF9XOg)
+**Felix, B.** (2025). Comparing U.S. Equity ETFs: VTI vs. DFUS. *Rational Reminder / YouTube*.  
+[https://youtu.be/lMdGA0ePXzI?si=L3kO7xyAme3sC0fD](https://youtu.be/lMdGA0ePXzI?si=L3kO7xyAme3sC0fD)
 
 ### Industry Sources
 
@@ -296,10 +298,10 @@ For now, my plan is to stick with VXUS for international while I continue resear
 [https://investor.vanguard.com/investment-products/etfs/profile/vxus](https://investor.vanguard.com/investment-products/etfs/profile/vxus)
 
 **Avantis Investors.** (2024). AVDE - International Equity ETF.  
-[https://www.avantisinvestors.com/investments/avde](https://www.avantisinvestors.com/investments/avde)
+[https://www.morningstar.com/etfs/arcx/avde/quote](https://www.morningstar.com/etfs/arcx/avde/quote)
 
 **Avantis Investors.** (2024). AVEM - Emerging Markets Equity ETF.  
-[https://www.avantisinvestors.com/investments/avem](https://www.avantisinvestors.com/investments/avem)
+[https://www.avantisinvestors.com/avantis-investments/avantis-emerging-markets-equity-etf/](https://www.avantisinvestors.com/avantis-investments/avantis-emerging-markets-equity-etf/)
 
 ### Web Resources
 
