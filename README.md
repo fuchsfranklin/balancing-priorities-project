@@ -10,11 +10,6 @@ A blog post exploring index fund inefficiencies and DFA/Avantis alternatives to 
 
 This post examines whether Dimensional Fund Advisors (DFA) ETFs can serve as improved replacements for traditional index funds like VTI and VXUS, without fully committing to factor investing.
 
-**Key Points:**
-- **DFUS, accounting for REITs, is equivalent to VTI**: Same factor exposure, ~1% CAGR advantage from implementation improvements
-- **DFAX and other alternatives are not equivalent VXUS**: DFAX has meaningful factor tilts (+0.21 HML, +0.21 RMW, +0.17 SMB)
-- **No "VXUS 2.0"**: No single DFA/Avantis ETF replicates VXUS without factor tilts
-
 ## Repository Structure
 
 ```
